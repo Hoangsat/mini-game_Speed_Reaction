@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Text;
@@ -12,11 +13,23 @@ namespace Reaction
 {
     public partial class FormReaction : Form
     {
-        int cardNr = 1;
+        int total_click = 10;
+        int click_nr=-1;
+        int reactime_ms=0;
+        int waiting=0;
+        int min_waiting = 1;  // in secons
+        int max_waiting = 5;
+        int my_card_nr = 0;
+
+        Stopwatch watch = new Stopwatch();
+        Random rand = new Random();
+
         public FormReaction()
         {
             InitializeComponent();
+            progress.Maximum = total_click;
         }
+
 
         public void ShowCard(int nr)
         { 
@@ -27,10 +40,55 @@ namespace Reaction
 
         private void timer_Tick(object sender, EventArgs e)
         {
-            cardNr++;
-            if (cardNr > 3)
-                cardNr = 1;
-            ShowCard(cardNr);
+            if (click_nr < 0)
+                return;
+            if (waiting > 0)
+            {
+                waiting--;
+                if (waiting == 0)
+                {
+                    my_card_nr = rand.Next(1, 4);
+                    ShowCard(my_card_nr);
+                    watch.Restart();
+                }
+            }
+            
+        }
+
+        private void buttonStart_Click(object sender, EventArgs e)
+        {
+            click_nr = 0;
+            reactime_ms = 0;
+            buttonStart.Enabled = false;
+            
+            Nextclick();
+
+        }
+        private void Nextclick()
+        {
+            ShowCard(0);
+            click_nr++;
+            progress.Value = click_nr;
+            waiting = rand.Next(min_waiting*1000/timer.Interval,
+                                max_waiting * 1000 / timer.Interval + 1);
+            
+        }
+
+        private void picture1_Click(object sender, EventArgs e)
+        {
+            watch.Stop();
+            reactime_ms += (int)watch.ElapsedMilliseconds;
+            if (click_nr >= total_click)
+                ShowResult();
+            Nextclick();
+        }
+
+        private void ShowResult()
+        {
+            double sec = reactime_ms / 1000.0 / total_click;
+            MessageBox.Show("midium reaction time " + sec.ToString("0.000") + "sec.", "Result");
+            buttonStart.Enabled = true;
+            click_nr = -1;
         }
     }
 }
